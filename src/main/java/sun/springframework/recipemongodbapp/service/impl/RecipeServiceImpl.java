@@ -2,67 +2,60 @@ package sun.springframework.recipemongodbapp.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import sun.springframework.recipemongodbapp.commands.RecipeCommand;
 import sun.springframework.recipemongodbapp.converters.RecipeCommandToRecipe;
 import sun.springframework.recipemongodbapp.converters.RecipeToRecipeCommand;
 import sun.springframework.recipemongodbapp.domain.Recipe;
-import sun.springframework.recipemongodbapp.exceptions.NotFoundException;
-import sun.springframework.recipemongodbapp.repositories.RecipeRepository;
+import sun.springframework.recipemongodbapp.repositories.reactive.RecipeReactiveRepository;
 import sun.springframework.recipemongodbapp.service.RecipeService;
-
-import java.lang.reflect.Array;
-import java.util.*;
 
 @Slf4j
 @Service
 public class RecipeServiceImpl implements RecipeService {
 
-    private RecipeRepository recipeRepository;
+    private RecipeReactiveRepository recipeReactiveRepository;
     private RecipeCommandToRecipe recipeCommandToRecipe;
     private RecipeToRecipeCommand recipeToRecipeCommand;
 
-    public RecipeServiceImpl(RecipeRepository recipeRepository, RecipeCommandToRecipe recipeCommandToRecipe, RecipeToRecipeCommand recipeToRecipeCommand) {
-        this.recipeRepository = recipeRepository;
+    public RecipeServiceImpl(RecipeReactiveRepository recipeReactiveRepository, RecipeCommandToRecipe recipeCommandToRecipe, RecipeToRecipeCommand recipeToRecipeCommand) {
+        this.recipeReactiveRepository = recipeReactiveRepository;
         this.recipeCommandToRecipe = recipeCommandToRecipe;
         this.recipeToRecipeCommand = recipeToRecipeCommand;
     }
 
     @Override
-    public List<Recipe> getRecipes() {
+    public Flux<Recipe> getRecipes() {
         log.debug("I'm in  the service");
-        List<Recipe> recipeSet = new ArrayList<>();
-        Iterable<Recipe> all = recipeRepository.findAll();
-        all.iterator().forEachRemaining(recipeSet::add);
-        return recipeSet;
+        return recipeReactiveRepository.findAll();
     }
 
     @Override
-    public Recipe findById(String id) {
-        Optional<Recipe> recipeOptional = recipeRepository.findById(id);
-        if(!recipeOptional.isPresent()){
-            //throw new RuntimeException("recipe not found");
-            throw new NotFoundException("Recipe not found. For ID value:"+id.toString());
-        }
-        return recipeOptional.get();
+    public Mono<Recipe> findById(String id) {
+        return recipeReactiveRepository.findById(id);
     }
 
     @Override
-    public RecipeCommand saveRecipeCommand(RecipeCommand recipeCommand) {
-        Recipe recipe = recipeCommandToRecipe.convert(recipeCommand);
-        Recipe savedRecipe = recipeRepository.save(recipe);
-        log.debug("saved recipeId:"+savedRecipe.getId());
-        return recipeToRecipeCommand.convert(savedRecipe);
+    public Mono<RecipeCommand> saveRecipeCommand(RecipeCommand recipeCommand) {
+        return recipeReactiveRepository.save(recipeCommandToRecipe.convert(recipeCommand)).map(recipeToRecipeCommand::convert);
     }
 
     @Override
-    public RecipeCommand findCommandById(String id) {
-        return recipeToRecipeCommand.convert(findById(id));
+    public Mono<RecipeCommand> findCommandById(String id) {
+        return recipeReactiveRepository.findById(id).map(recipe -> {
+            RecipeCommand recipeCommand = recipeToRecipeCommand.convert(recipe);
+            recipeCommand.getIngredients().forEach(ingredientCommand -> {
+                ingredientCommand.setRecipeId(recipeCommand.getId());
+            });
+            return recipeCommand;
+        });
     }
 
     @Override
-    public void deleteById(String id) {
-        recipeRepository.deleteById(id);
+    public Mono<Void> deleteById(String id) {
+        recipeReactiveRepository.deleteById(id).block();
+        return Mono.empty();
     }
 
 }
