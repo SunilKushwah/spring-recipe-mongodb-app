@@ -38,20 +38,18 @@ public class RecipeController {
         return RECIPE_RECIPEFORM_URL;
     }
 
-    @PostMapping("/recipe")
+    @PostMapping("recipe")
     public String saveOrUpdate(@Valid @ModelAttribute("recipe") RecipeCommand command, BindingResult bindingResult){//binding result is result of validation
-        log.info("Recipe saveOrUpdate called");
-        log.info("RecipeObj:"+command.toString());
         if(bindingResult.hasErrors()){
             bindingResult.getAllErrors().forEach(objectError -> {
                 log.debug(objectError.toString());
             });
-            return  RECIPE_RECIPEFORM_URL;
+            return RECIPE_RECIPEFORM_URL;
         }
-        RecipeCommand recipeCommand = recipeService.saveRecipeCommand(command);
-        return "redirect:/recipe/"+recipeCommand.getId()+"/show";
-
+        RecipeCommand savedCommand = recipeService.saveRecipeCommand(command);
+        return "redirect:/recipe/" + savedCommand.getId() + "/show";
     }
+
     @GetMapping("recipe/{id}/update")
     public String updateRecipe(@PathVariable String id, Model model){
         model.addAttribute("recipe", recipeService.findCommandById(id));
