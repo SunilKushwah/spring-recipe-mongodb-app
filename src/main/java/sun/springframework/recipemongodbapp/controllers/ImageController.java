@@ -32,27 +32,31 @@ public class ImageController {
 
     @GetMapping("recipe/{id}/image")
     public String saveImageFile(@PathVariable String id, Model model){
-        model.addAttribute("recipe",recipeService.findCommandById(id));
+        model.addAttribute("recipe",recipeService.findCommandById(id).block());
         return "recipe/imageuploadform";
     }
 
     @PostMapping("recipe/{id}/image")
     public String handleImagePost(@PathVariable String id, @RequestParam("imagefile")MultipartFile file){
-        imageService.saveImageFile(id,file);
+        imageService.saveImageFile(id,file).block();
         return "redirect:/recipe/"+id+"/show";
     }
 
     @GetMapping("recipe/{id}/recipeimage")
     public void getRecipeImage(@PathVariable String id, HttpServletResponse httpServletResponse) throws IOException {
         RecipeCommand recipeCommand = recipeService.findCommandById(id).block();
-        byte[] byteArray = new byte[recipeCommand.getImage().length];
-        int i=0;
-        for(Byte b : recipeCommand.getImage()){
-            byteArray[i++] = b;
+        if(recipeCommand.getImage()!=null)
+        {
+            byte[] byteArray = new byte[recipeCommand.getImage().length];
+            int i=0;
+            for(Byte b : recipeCommand.getImage()){
+                byteArray[i++] = b;
+            }
+            httpServletResponse.setContentType("image/jpeg");
+            InputStream is = new ByteArrayInputStream(byteArray);
+            IOUtils.copy(is,httpServletResponse.getOutputStream());
         }
-        httpServletResponse.setContentType("image/jpeg");
-        InputStream is = new ByteArrayInputStream(byteArray);
-        IOUtils.copy(is,httpServletResponse.getOutputStream());
+
 
     }
 }
