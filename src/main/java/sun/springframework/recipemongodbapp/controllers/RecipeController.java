@@ -5,8 +5,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.ModelAndView;
+//import org.springframework.web.servlet.ModelAndView;
+import org.thymeleaf.exceptions.TemplateInputException;
+import reactor.core.publisher.Mono;
 import sun.springframework.recipemongodbapp.commands.RecipeCommand;
 import sun.springframework.recipemongodbapp.exceptions.NotFoundException;
 import sun.springframework.recipemongodbapp.service.RecipeService;
@@ -21,13 +24,20 @@ public class RecipeController {
 
     private String RECIPE_RECIPEFORM_URL = "recipe/recipeform";
 
+    private WebDataBinder webDataBinder;
+
     public RecipeController(RecipeService recipeService) {
         this.recipeService = recipeService;
     }
 
+    @InitBinder
+    public void initBinder(WebDataBinder webDataBinder){
+        this.webDataBinder = webDataBinder;
+    }
+
     @GetMapping("/recipe/{id}/show")
     public String showById(@PathVariable String id, Model model){
-        model.addAttribute("recipe", recipeService.findById(id).block());
+        model.addAttribute("recipe", recipeService.findById(id));
         return "recipe/show";
     }
 
@@ -39,7 +49,9 @@ public class RecipeController {
     }
 
     @PostMapping("recipe")
-    public String saveOrUpdate(@Valid @ModelAttribute("recipe") RecipeCommand command, BindingResult bindingResult){//binding result is result of validation
+    public String saveOrUpdate(@Valid @ModelAttribute("recipe") RecipeCommand command){//binding result is result of validation
+        webDataBinder.validate();
+        BindingResult bindingResult = webDataBinder.getBindingResult();
         if(bindingResult.hasErrors()){
             bindingResult.getAllErrors().forEach(objectError -> {
                 log.debug(objectError.toString());
@@ -52,7 +64,7 @@ public class RecipeController {
 
     @GetMapping("recipe/{id}/update")
     public String updateRecipe(@PathVariable String id, Model model){
-        model.addAttribute("recipe", recipeService.findCommandById(id).block());
+        model.addAttribute("recipe", recipeService.findCommandById(id));
         return "recipe/recipeform";
     }
     @GetMapping("recipe/{id}/delete")
@@ -63,14 +75,12 @@ public class RecipeController {
     }
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    @ExceptionHandler(NotFoundException.class)
-    public ModelAndView handleNotFound(Exception exception){
+    @ExceptionHandler({NotFoundException.class, TemplateInputException.class})
+    public String handleNotFound(Exception exception, Model model){
         log.error("Handling not found exception");
         log.error(exception.getMessage());
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.setViewName("404error");
-        modelAndView.addObject("exception", exception);
-        return modelAndView;
+        model.addAttribute("exception", exception);
+        return "404error";
     }
 
 

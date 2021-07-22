@@ -1,7 +1,7 @@
 package sun.springframework.recipemongodbapp.controllers;
 
 
-import org.apache.tomcat.util.http.fileupload.IOUtils;
+//import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +14,7 @@ import sun.springframework.recipemongodbapp.service.ImageService;
 import sun.springframework.recipemongodbapp.service.RecipeService;
 
 
-import javax.servlet.http.HttpServletResponse;
+//import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,7 +42,7 @@ public class ImageController {
         return "redirect:/recipe/"+id+"/show";
     }
 
-    @GetMapping("recipe/{id}/recipeimage")
+    /*@GetMapping("recipe/{id}/recipeimage")
     public void getRecipeImage(@PathVariable String id, HttpServletResponse httpServletResponse) throws IOException {
         RecipeCommand recipeCommand = recipeService.findCommandById(id).block();
         if(recipeCommand.getImage()!=null)
@@ -58,5 +58,5 @@ public class ImageController {
         }
 
 
-    }
+    }*/
 }
